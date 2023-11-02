@@ -9,6 +9,7 @@ from pyvivor.buff import BuffManager
 
 class World:
     def __init__(self):
+        self.started = False
         self.grounds_sprites = pygame.sprite.Group()
         self.units_sprites = pygame.sprite.Group()
         self.enemies_sprites = pygame.sprite.Group()
@@ -21,7 +22,7 @@ class World:
         self.player = Player(groups=self.units_sprites)
         self.buff_manager = BuffManager(self.player)
         self.level_up_screen = LevelUpScreen(self.buff_manager)
-        self.global_timer = GlobalTimer(configurator.game_screen.get_rect())
+        self.global_timer = None
         self.enemy_factory = EnemyFactory(groups=[self.enemies_sprites],
                                           player_position=configurator.game_screen.get_rect().center,
                                           enemy_distance=200)
@@ -32,6 +33,9 @@ class World:
         self.foreground_slow.update()
 
         if game_status.started:
+            if not self.global_timer:
+                self.global_timer = GlobalTimer(configurator.game_screen.get_rect())
+
             self.global_timer.update()
             self.animations_sprites.update()
             self.player.update()
