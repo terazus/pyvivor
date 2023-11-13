@@ -35,3 +35,6 @@ class GlobalTimer(pygame.sprite.Sprite):
 
     def unpause(self):
         self.total_offset += self.offset
+
+    def get_text_time(self):
+        return str(datetime.timedelta(milliseconds=self.time)).split(".")[0]

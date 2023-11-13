@@ -74,7 +74,10 @@ class WelcomeScreenButton(pygame.sprite.Sprite):
         rect = self.rect.move(self.position_x, self.position_y + self.offset)
         if rect.collidepoint(pygame.mouse.get_pos()):
             self.is_hovering = True
-            pygame.mouse.set_cursor(*pygame.cursors.tri_left)
+            try:
+                pygame.mouse.set_cursor(*pygame.cursors.tri_left)
+            except Exception:
+                pass
         else:
             if self.is_hovering:
                 self.is_hovering = False

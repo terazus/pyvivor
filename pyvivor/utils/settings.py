@@ -11,11 +11,13 @@ FPS = 120
 HERE_PATH = path.dirname(__file__)
 ASSETS_PATH = path.join(HERE_PATH, '..', 'assets')
 MAPS_PATH = path.join(ASSETS_PATH, 'maps')
+SOUNDS_PATH = path.join(ASSETS_PATH, 'sounds')
 GRAPHICS_PATH = path.join(ASSETS_PATH, 'graphics')
 BUTTONS_PATH = path.join(GRAPHICS_PATH, 'buttons')
 TEXTURES_PATH = path.join(GRAPHICS_PATH, 'textures')
 SHIPS_PATH = path.join(GRAPHICS_PATH, 'ship')
 PARTICLES_PATH = path.join(GRAPHICS_PATH, 'particles')
+GEMS_PATH = path.join(GRAPHICS_PATH, 'gems')
 FONT_PATH = path.join(GRAPHICS_PATH, 'font', 'joystix.ttf')
 
 

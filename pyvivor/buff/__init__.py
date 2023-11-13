@@ -4,6 +4,7 @@ import pygame
 
 from pyvivor.utils import FONT_PATH, configurator
 
+
 class BuffManager:
     def __init__(self, player):
         self.player = player
@@ -22,7 +23,7 @@ class BuffManager:
             "max life": {
                 "apply": self.increase_max_life,
                 "selected": 0,
-                "max": 3
+                "max": 10
             },
             "velocity": {
                 "apply": self.increase_velocity,
@@ -43,7 +44,6 @@ class BuffManager:
                 "apply": self.increase_projectile_width,
                 "selected": 0,
                 "max": 10
-
             },
             "range": {
                 "apply": self.increase_range,
@@ -63,6 +63,31 @@ class BuffManager:
             "dash": {
                 "apply": self.improve_dash,
                 "selected": 0,
+                "max": 5
+            },
+            "life regen": {
+                "apply": self.increase_life_regen,
+                "selected": 0,
+                "max": 10
+            },
+            "crit chance": {
+                "apply": self.increase_crit_chance,
+                "selected": 0,
+                "max": 10
+            },
+            "crit damage": {
+                "apply": self.increase_crit_damage,
+                "selected": 0,
+                "max": 10
+            },
+            "pickup range": {
+                "apply": self.increase_pickup_range,
+                "selected": 0,
+                "max": 5
+            },
+            "armour": {
+                "apply": self.increase_armour,
+                "selected": 0,
                 "max": 10
             }
         }
@@ -72,8 +97,8 @@ class BuffManager:
 
     # INFINITE BUFFS #
     def heal(self):
-        if self.player.life < self.player.max_life:
-            self.player.life += 1
+        if self.player.current_health < self.player.max_health:
+            self.player.current_health += 10 * self.player.current_health / 100
             return True
         return True
 
@@ -85,16 +110,15 @@ class BuffManager:
     def increase_max_life(self):
         buff = self.buff['max life']
         if buff['selected'] < buff['max']:
-            self.player.max_life += 1
             buff['selected'] += 1
-            self.player.life += 1
+            self.player.max_health += 10 * buff['selected'] * self.player.max_health / 100
             return True
         return False
 
     def increase_velocity(self):
         buff = self.buff['velocity']
         if buff['selected'] < buff['max']:
-            self.player.movement_speed += 0.1
+            self.player.movement_speed = self.player.movement_speed + 0.1
             buff['selected'] += 1
             return True
         return False
@@ -102,7 +126,7 @@ class BuffManager:
     def increase_attack_speed(self):
         buff = self.buff['atk speed']
         if buff['selected'] < buff['max']:
-            self.player.attack.cooldown -= 2
+            self.player.attack.cooldown -= 10 * self.player.attack.cooldown / 100
             buff['selected'] += 1
             self.player.frame_count = 0
             return True
@@ -154,8 +178,50 @@ class BuffManager:
             if not self.player.can_dash:
                 self.player.can_dash = True
             else:
-                self.player.dash_cooldown -= 10
+                self.player.dash_cooldown -= 100
                 self.player.dash_force += 0.2
+                if buff['selected'] == 4:
+                    self.player.dash_immune_damage = True
+            buff['selected'] += 1
+            return True
+        return False
+
+    def increase_life_regen(self):
+        buff = self.buff['life regen']
+        if buff['selected'] < buff['max']:
+            self.player.life_regen += 0.5
+            buff['selected'] += 1
+            return True
+        return False
+
+    def increase_crit_chance(self):
+        buff = self.buff['crit chance']
+        if buff['selected'] < buff['max']:
+            self.player.attack.critical_chance += 5
+            buff['selected'] += 1
+            return True
+        return False
+
+    def increase_crit_damage(self):
+        buff = self.buff['crit damage']
+        if buff['selected'] < buff['max']:
+            self.player.attack.critical_multiplier += 0.1
+            buff['selected'] += 1
+            return True
+        return False
+
+    def increase_pickup_range(self):
+        buff = self.buff['pickup range']
+        if buff['selected'] < buff['max']:
+            self.player.pickup_range += 20
+            buff['selected'] += 1
+            return True
+        return False
+
+    def increase_armour(self):
+        buff = self.buff['armour']
+        if buff['selected'] < buff['max']:
+            self.player.armour += 10
             buff['selected'] += 1
             return True
         return False

@@ -1,0 +1,32 @@
+{
+    "screen": [1920, 1080],
+    "grid_width": 3,
+    "grid_height": 3,
+    "items": {
+        "mini": {
+            "scale": [2, 2],
+            "quantity": 5530,
+            "alpha": 50
+        },
+        "small": {
+            "scale": [2, 2],
+            "quantity": 3000,
+            "alpha": 200
+        },
+        "medium": {
+            "scale": [8, 8],
+            "quantity": 300,
+            "alpha": 127
+        },
+        "large": {
+            "scale": [8, 8],
+            "quantity": 200,
+            "alpha": 200
+        },
+        "huge": {
+            "scale": [12, 12],
+            "quantity": 30,
+            "alpha": 175
+        }
+    }
+}

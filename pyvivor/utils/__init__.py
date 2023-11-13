@@ -2,9 +2,8 @@ import sys
 
 import pygame
 
-from .cameras import CameraHandler, camera_background, camera_foreground_slow, camera_foreground_normal, update_velocity
+from .cameras import CameraHandler, camera_background, update_velocity
 from .status import game_status
-from .defaults import PLAYER_BASE_SPEED
 from .settings import (
     GAME_TITLE,
     FPS,
@@ -16,6 +15,8 @@ from .settings import (
     SHIPS_PATH,
     FONT_PATH,
     PARTICLES_PATH,
+    GEMS_PATH,
+    SOUNDS_PATH,
     configurator
 )
 from .timer import Timer
@@ -27,6 +28,7 @@ from .math import (
     interpolate_close_point,
     calculate_movement_vector
 )
+from .saved_game import load_game_data, save_game_data
 
 
 def leave_game():

@@ -1,6 +1,7 @@
 from random import randrange
 
 from .enemy import Enemy, DestroyAnimation
+from .experience_gem import ExperienceGem
 from pyvivor.utils import distance, configurator
 
 
@@ -27,8 +28,9 @@ class EnemyFactory:
                     "size": 20,
                     "color": "blue",
                     "exp": 100,
-                    "gold": 10,
-                    "life": 100
+                    "gold": 20,
+                    "life": 100,
+                    "damage": 30,
                 },
                 "quantity": 1
             },

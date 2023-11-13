@@ -1,184 +1,138 @@
-from random import randrange
 from os import path
-from abc import ABCMeta, abstractmethod
 
 import pygame
 
 from pyvivor.utils import (
     configurator,
     GRAPHICS_PATH,
-    camera_background,
-    camera_foreground_slow,
-    camera_foreground_normal
+    camera_background
 )
 
-
-STAR_PATH = path.join(GRAPHICS_PATH, 'star.png')
-FOG_PATH = path.join(GRAPHICS_PATH, 'particles', 'fog.png')
-FOG2_PATH = path.join(GRAPHICS_PATH, 'particles', 'fog2.png')
-FOG3_PATH = path.join(GRAPHICS_PATH, 'particles', 'fog3.png')
-
-STAR = pygame.image.load(STAR_PATH).convert_alpha()
-FOG_2_LARGE = pygame.transform.scale(pygame.image.load(FOG2_PATH).convert_alpha(), (400, 200))
-FOG_3_LARGE = pygame.transform.scale(pygame.image.load(FOG3_PATH).convert_alpha(), (600, 150))
+BACKGROUND_IMAGE = pygame.image.load(path.join(GRAPHICS_PATH, 'backgrounds', 'background.png')).convert_alpha()
 
 
-class Ground(pygame.sprite.Sprite, metaclass=ABCMeta):
+class BackgroundScroller(pygame.sprite.Sprite):
     def __init__(self, groups):
         super().__init__(groups)
-        self.display_surface = configurator.game_screen
-        self.grid_width = 3
-        self.grid_height = 3
-        self.grid = [[[] for _ in range(self.grid_height)] for _ in range(self.grid_width)]
-        self.positions = []
-        self.camera_handler = camera_background
         self.moved = False
+        self.screen = configurator.game_screen
+        self.camera_handler = camera_background
 
-    @abstractmethod
-    def draw(self):
-        raise NotImplementedError
+        # This is manually done, maybe try to automate it.
+        self.grid_width = 2
+        self.grid_height = 2
+        self.grid = []
+        for i in range(-1, self.grid_width):
+            line = []
+            for j in range(-1, self.grid_height):
+                line.append(BackgroundTile(j, i))
+            self.grid.append(line)
+
+        self.left = self.grid[0][0].grid_origin_position[0]
+        self.top = self.grid[0][0].grid_origin_position[1]
+        self.right = self.grid[-1][-1].grid_origin_position[0]
+        self.bottom = self.grid[-1][-1].grid_origin_position[1]
 
     def update(self):
-        moved = self.camera_handler.change_screen_offset()
-        if moved:
-            self.camera(moved)
+        self.moved = self.camera_handler.change_screen_offset()
         self.draw()
-        self.moved = moved
 
-    @abstractmethod
-    def generate_positions(self):
-        raise NotImplementedError
+    def draw(self):
+        for line in self.grid:
+            for tile in line:
+                tile.draw()
+                if tile.visibility_changed and tile.visible:
+                    self.__rebuild_graph(tile)
 
-    def camera(self, direction):
-        if self.camera_handler.offset_x % configurator.screen_width == 0:
+    def __rebuild_graph(self, tile):
+        x = tile.grid_origin_position[0]
+        y = tile.grid_origin_position[1]
+        self.__rebuild_y_movement(x, y)
+        self.__rebuild_x_movement(x)
+
+    def __rebuild_y_movement(self, x, y):
+        if y == self.top:
+            self.grid.insert(0, [
+                BackgroundTile(x - 2, y - 1),
+                BackgroundTile(x - 1, y - 1),
+                BackgroundTile(x, y - 1),
+                BackgroundTile(x + 1, y - 1),
+                BackgroundTile(x + 2, y - 1)
+            ])
+            if len(self.grid) >= 5:
+                del self.grid[-1]
+            self.top = self.grid[0][0].grid_origin_position[1]
+            self.bottom = self.grid[-1][-1].grid_origin_position[1]
+
+        if y == self.bottom:
+            self.grid.append([
+                BackgroundTile(x - 2, y + 1),
+                BackgroundTile(x - 1, y + 1),
+                BackgroundTile(x, y + 1),
+                BackgroundTile(x + 1, y + 1),
+                BackgroundTile(x + 2, y + 1)
+            ])
+
+            if len(self.grid) >= 5:
+                del self.grid[0]
+
+            self.top = self.grid[0][0].grid_origin_position[1]
+            self.bottom = self.grid[-1][-1].grid_origin_position[1]
+
+    def __rebuild_x_movement(self, x):
+        if x == self.left:
             for line in self.grid:
-                if 'w' in direction:
-                    tile = line.pop(2)
-                    for star in tile:
-                        star['x'] -= 3 * configurator.screen_width
-                    line.insert(0, tile)
-                elif 'e' in direction:
-                    tile = line.pop(0)
-                    for star in tile:
-                        star['x'] += 3 * configurator.screen_width
-                    line.append(tile)
+                y = line[0].grid_origin_position[1]
+                line.insert(0, BackgroundTile(x - 1, y))
+                if len(line) >= 5:
+                    del line[-1]
+            self.left = self.grid[0][0].grid_origin_position[0]
+            self.right = self.grid[-1][-1].grid_origin_position[0]
 
-        if self.camera_handler.offset_y % configurator.screen_height == 0:
-            if 'n' in direction:
-                line_ = self.grid.pop(2)
-                for row in line_:
-                    for star in row:
-                        star['y'] -= 3 * configurator.screen_height
-                self.grid.insert(0, line_)
-            elif 's' in direction:
-                line_ = self.grid.pop(0)
-                for row in line_:
-                    for star in row:
-                        star['y'] += 3 * configurator.screen_height
-                self.grid.append(line_)
+        if x == self.right:
+            for line in self.grid:
+                y = line[0].grid_origin_position[1]
+                line.append(BackgroundTile(x + 1, y))
+                if len(line) >= 5:
+                    del line[0]
+            self.left = self.grid[0][0].grid_origin_position[0]
+            self.right = self.grid[-1][-1].grid_origin_position[0]
 
 
-class BackgroundStars(Ground):
-    def __init__(self, groups):
-        super().__init__(groups)
-        self.stars_data = {
-            'mini': {
-                'scale': (4, 4),
-                'image': pygame.transform.scale(STAR, (4, 4)),
-                'quantity': 2000
-            },
-            'small': {
-                'scale': (6, 6),
-                'image': pygame.transform.scale(STAR, (6, 6)),
-                'quantity': 250
-            },
-            'medium': {
-                'scale': (12, 12),
-                'image': pygame.transform.scale(STAR, (12, 12)),
-                'quantity': 100
-            },
-            'large': {
-                'scale': (22, 22),
-                'image': pygame.transform.scale(STAR, (26, 26)),
-                'quantity': 50
-            }
-        }
-        self.generate_positions()
+class BackgroundTile:
+    def __init__(self, x, y):
+        image_width = BACKGROUND_IMAGE.get_width() // 3
+        image_height = BACKGROUND_IMAGE.get_height() // 3
+
+        self.grid_origin_position = (x, y)
+
+        image_position_x = 0
+        if x % 4 == 0 or x == 1 or x == -1:
+            image_position_x = image_width
+        if x % 5 == 0 or x == 2 or x == -2:
+            image_position_x = image_width * 2
+
+        image_position_y = 0
+        if y % 4 == 0 or y == 1 or y == -1:
+            image_position_y = image_height
+        if y % 5 == 0 or y == 2 or y == -2:
+            image_position_y = image_height * 2
+
+        self.image = BACKGROUND_IMAGE.subsurface((image_position_x, image_position_y, image_width, image_height))
+        self.visible = True if x == y == 0 else False
+        self.visibility_changed = False
 
     def draw(self):
-        for line in self.grid:
-            for row in line:
-                for star in row:
-                    image = star['image']
-                    star_x = star['x'] - self.camera_handler.offset_x
-                    star_y = star['y'] + self.camera_handler.offset_y
-                    if 0 <= star_x <= configurator.screen_width and 0 <= star_y <= configurator.screen_height:
-                        self.display_surface.blit(image, (star_x, star_y))
+        x = self.grid_origin_position[0] * configurator.game_screen.get_width() + camera_background.offset_x
+        y = self.grid_origin_position[1] * configurator.game_screen.get_height() + camera_background.offset_y
+        self.set_visibility(x, y)
+        if self.visible:
+            configurator.game_screen.blit(self.image, (x, y))
 
-    def generate_positions(self):
-        for star_size in self.stars_data:
-            quantity = self.stars_data[star_size]['quantity']
-            for i in range(quantity):
-                x = randrange(-configurator.screen_width, configurator.screen_width * 2)
-                y = randrange(-configurator.screen_height, configurator.screen_height * 2)
-                while (x, y) in self.positions:
-                    x = randrange(0, configurator.screen_width)
-                    y = randrange(0, configurator.screen_height)
-                self.positions.append((x, y))
-
-                grid_y = 0 if x < 0 else 1 if x < configurator.screen_width else 2
-                grid_x = 0 if y < 0 else 1 if y < configurator.screen_height else 2
-                self.grid[grid_x][grid_y].append({'x': x, 'y': y, 'image': self.stars_data[star_size]['image']})
-
-        self.positions = []
-
-
-class ForegroundFog(Ground):
-    def __init__(self, groups, speed='slow'):
-        super().__init__(groups)
-        self.speed = speed
-        fogs_per_tile = {
-            'slow': 10,
-            'normal': 3
-        }
-        self.fogs_per_tile = fogs_per_tile[speed]
-        self.camera_handler = camera_foreground_normal if speed == 'normal' else camera_foreground_slow
-        self.generate_positions()
-
-    def generate_positions(self):
-        for li, line in enumerate(self.grid):
-            for r, row in enumerate(line):
-                for i in range(self.fogs_per_tile):
-                    x_min = 0 if r == 1 else -configurator.screen_width if r == 0 else configurator.screen_width
-                    x_max = configurator.screen_width if r == 1 else 0 if r == 0 else configurator.screen_width * 2
-                    x = randrange(x_min, x_max)
-                    y_min = 0 if li == 1 else -configurator.screen_height if li == 0 else configurator.screen_height
-                    y_max = configurator.screen_height if li == 1 else 0 if li == 0 else configurator.screen_height * 2
-                    y = randrange(y_min, y_max)
-                    while (x, y) in self.positions:
-                        x = randrange(x_min, x_max)
-                    self.positions.append((x, y))
-
-                    grid_y = 0 if x < 0 else 1 if x < configurator.screen_width else 2
-                    grid_x = 0 if y < 0 else 1 if y < configurator.screen_height else 2
-                    self.grid[grid_x][grid_y].append({'x': x, 'y': y})
-
-        self.positions = []
-
-    def draw(self):
-        for line in self.grid:
-            for row in line:
-                for fog in row:
-                    fog_x = fog['x'] - self.camera_handler.offset_x
-                    fog_y = fog['y'] + self.camera_handler.offset_y
-                    if 0 <= fog_x <= configurator.screen_width and 0 <= fog_y <= configurator.screen_height:
-                        alpha = 100
-                        fog_image = FOG_2_LARGE
-                        if self.speed == 'normal':
-                            fog_image = FOG_3_LARGE
-                            alpha = 150
-
-                        img = fog_image.copy()
-                        img.fill((255, 255, 255, alpha), None, pygame.BLEND_RGBA_MULT)
-                        self.display_surface.blit(img, (fog_x, fog_y))
-
+    def set_visibility(self, x, y):
+        collision_rect = pygame.Rect(0, 0,
+                                     configurator.game_screen.get_width(), configurator.game_screen.get_height())
+        image_rect = pygame.Rect(x, y, self.image.get_width(), self.image.get_height())
+        visible = True if collision_rect.colliderect(image_rect) else False
+        self.visibility_changed = True if visible is not self.visible else False
+        self.visible = visible
