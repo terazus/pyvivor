@@ -51,7 +51,7 @@ class AbstractPlayer(ABC):
 
         self.life_regen_timer = Timer()
         self.radius = SPRITE_SCALE[0] // 2
-        self.attack = ClawAttack()
+        self.attack = BaseAttack()
 
         self.gold = 0
         self.level_up = False
